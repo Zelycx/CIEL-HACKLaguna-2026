@@ -87,7 +87,7 @@ A calm home screen that welcomes the user and highlights a selected Bible passag
 - A simple continuation point for the user's Bible reading journey.
 
 **Screenshot:** Home screen  
-<img width="922" height="2048" alt="image" src="https://github.com/user-attachments/assets/223a0eca-a4f1-41be-b6e6-5bdaa6ed3743" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/223a0eca-a4f1-41be-b6e6-5bdaa6ed3743" />
 
 ### 2. Ciel Chat
 
@@ -101,7 +101,7 @@ A faith-focused companion for questions about God, Christianity, Scripture, and 
 - Offline and online provider support.
 
 **Screenshot:** Chat  
-<img width="922" height="2048" alt="image" src="https://github.com/user-attachments/assets/f998125d-ee25-43fd-b55a-b65aa1fc2a08" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/f998125d-ee25-43fd-b55a-b65aa1fc2a08" />
 
 ### 3. Offline-first hybrid AI
 
@@ -116,7 +116,7 @@ Ciel is designed to remain useful without an internet connection. The bundled Bi
 The local model is an optional first-time download. The current in-app setup information lists a download of approximately **498 MB** and recommends around **550 MB of free storage** and **1.5 GB of available memory while chatting**. Actual performance depends on the Android device. The Bible and saved app data remain available even before the model download is complete.
 
 **Screenshot:** Offline companion and online access settings  
-<img width="922" height="2048" alt="image" src="https://github.com/user-attachments/assets/c6e9493e-9d44-4c66-ad8e-869b6da913b0" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/c6e9493e-9d44-4c66-ad8e-869b6da913b0" />
 
 ### 4. Bible reader and search
 
@@ -131,7 +131,7 @@ A built-in Bible reader powered by the bundled **Berean Standard Bible (BSB)** d
 - Open Bible references from Ciel's responses and the Verse of the Day.
 
 **Screenshot:** Bible reader  
-<img width="922" height="2048" alt="image" src="https://github.com/user-attachments/assets/25bbdb2e-ec04-456e-8d33-3328896ce20a" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/25bbdb2e-ec04-456e-8d33-3328896ce20a" />
 
 ### 5. Reading progress and streaks
 
@@ -147,7 +147,7 @@ Ciel helps users continue where they left off instead of making them remember th
 A chapter is counted as completed when the user marks it as read, rather than simply opening it.
 
 **Screenshot:** Continue Reading and reading progress  
-<img width="362" height="160" alt="image" src="https://github.com/user-attachments/assets/ee149c84-9337-45ba-9862-02430868fa22" />
+<img width="352" height="275" alt="image" src="https://github.com/user-attachments/assets/ee149c84-9337-45ba-9862-02430868fa22" />
 <img width="352" height="275" alt="image" src="https://github.com/user-attachments/assets/65fd8b4d-b54a-45b2-a748-b2a13937316e" />
 
 ### 6. Kumpisal — Private Reflections
@@ -174,7 +174,7 @@ Saved conversations help users return to earlier discussions without losing the 
 - Supports starting a separate new conversation.
 
 **Screenshot:** Conversation History  
-<img width="922" height="2048" alt="image" src="https://github.com/user-attachments/assets/1cf44286-de9b-4854-bcb6-943f3952e62f" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/1cf44286-de9b-4854-bcb6-943f3952e62f" />
 
 ### 8. Statistics
 
@@ -187,7 +187,7 @@ A personal overview of how the user spends time in Ciel and how their Bible read
 - Weekly activity overview.
 
 **Screenshot:** Statistics  
-<img width="922" height="2048" alt="image" src="https://github.com/user-attachments/assets/3e1932ce-a107-4c27-b34d-9180cff86a58" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/3e1932ce-a107-4c27-b34d-9180cff86a58" />
 
 ### 9. Daily reminders
 
@@ -206,7 +206,7 @@ The Verse of the Day can be turned into a shareable image rather than just copie
 - Share the resulting image through Android's sharing menu.
 
 **Screenshot:** Verse sharing and expression selection  
-<img width="922" height="2048" alt="image" src="https://github.com/user-attachments/assets/c51ccc5a-5e02-4038-881f-e08e4c770298" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/c51ccc5a-5e02-4038-881f-e08e4c770298" />
 
 ### 11. Themes and appearance
 
