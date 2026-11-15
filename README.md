@@ -286,3 +286,111 @@ For a Windows command prompt, the build can also be run from the project directo
 
 ```bat
 gradlew.bat :app:assembleDebug
+
+```
+
+The generated debug APK can usually be found at:
+
+```text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+### Running the application
+
+You can run CIEL directly through Android Studio:
+
+1. Open the project.
+2. Allow Gradle to finish syncing.
+3. Select an available Android device or emulator.
+4. Select the `app` run configuration.
+5. Click **Run**.
+
+For local development, use the debug build. A debug APK is intended for testing and is not the recommended distribution build.
+
+### Downloading CIEL
+
+A public installation package is not available yet. Once the release build has been tested and is ready for distribution, the APK will be published through the repository's GitHub Releases.
+
+---
+
+## Challenges I faced
+
+Developing CIEL came with several challenges, especially considering the limited time available during the competition.
+
+One of the biggest challenges was turning a broad and personal problem into an actual application. I wanted CIEL to be more than a chatbot. It needed to provide a meaningful experience around faith, Scripture, and personal reflection.
+
+Other challenges included:
+
+- **Scope and time management:** Developing a concept and its core application experience during a 90-minute competition.
+- **AI integration:** Designing an approach that supports both local and online AI without making internet access a requirement for the entire application.
+- **User privacy:** Considering how to keep personal reflections separate from conversations with AI providers.
+- **User experience:** Creating an interface that feels welcoming and easy to understand rather than overly technical.
+- **Responsible AI:** Making sure a faith-focused companion can acknowledge its limitations and encourage human guidance when appropriate.
+
+These challenges helped shape the direction of CIEL beyond its original competition prototype.
+
+## Accomplishments we're proud of
+
+CIEL became more than just an idea developed for a competition.
+
+Some accomplishments include:
+
+- Achieving **1st Runner-Up at #HACKLaguna 2026**.
+- Developing a native Android application using Kotlin.
+- Bringing Bible reading and faith-focused conversations together in one application.
+- Designing an offline-first approach with optional online AI access.
+- Building personal reflection features that remain separate from AI conversations.
+- Turning a personal experience and a real problem into a project with a meaningful purpose.
+
+The recognition at HACKLaguna was a meaningful milestone, but the bigger accomplishment was being able to turn the concept into something that can continue to grow.
+
+## What I learned
+
+Building CIEL taught me that developing an application is not only about writing code or making features work.
+
+It is also about understanding the people who will use it.
+
+I learned the importance of:
+
+- Starting with a real problem instead of immediately choosing a technology.
+- Prioritizing features based on what users actually need.
+- Balancing functionality, privacy, and usability.
+- Designing applications that remain useful even with limited internet access.
+- Understanding the limitations of AI and avoiding unrealistic expectations.
+- Treating feedback and testing as part of the development process.
+
+Most importantly, I learned that a project can have a meaningful purpose beyond the technology used to build it.
+
+## What's next for CIEL?
+
+CIEL is still a work in progress. There are several areas I want to improve before making it available to more people.
+
+Planned improvements include:
+
+- **AI improvements:** Continue improving the quality, reliability, and responsiveness of online and local AI conversations.
+- **Offline functionality:** Test and optimize the local language model across different Android devices.
+- **Release stability:** Investigate release-build crashes and test the application on physical devices.
+- **Privacy and security:** Review local data protection, credential handling, and personal reflection storage.
+- **Bible experience:** Improve Scripture search, navigation, reading progress, and contextual references.
+- **Accessibility:** Make the application more comfortable and accessible to a wider range of users.
+- **Community feedback:** Gather feedback from young people and church communities to understand what should be improved.
+- **Public distribution:** Prepare a stable Android release and a dedicated website for downloading CIEL.
+
+The long-term goal is to make CIEL a genuinely useful companion for people who want to explore their faith, ask questions, and reflect without feeling judged.
+
+## Developer
+
+**John Ezekiel M. Yorong**
+
+Developer of CIEL: Your Safe Space
+
+- GitHub: [@Zelycx](https://github.com/Zelycx)
+- Project: CIEL: Your Safe Space
+- Event: #HACKLaguna 2026
+- Recognition: 1st Runner-Up
+
+Built with the intention of making space for honest questions, meaningful conversations, and faith exploration.
+
+---
+
+*CIEL is a personal faith companion and a starting point for reflection. It is not a substitute for Scripture study, pastoral guidance, trusted relationships, professional care, or emergency services.*
