@@ -1,9 +1,10 @@
 package com.example.hacklaguna2026.ai
 
-import android.util.Log
-import com.example.hacklaguna2026.BuildConfig
 import com.example.hacklaguna2026.bible.BiblePassage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -21,14 +22,6 @@ import java.util.concurrent.TimeUnit
 
 data class GroqChatMessage(val role: String, val content: String)
 
-private val GROQ_SYSTEM_PROMPT = """
-    You are Ciel, a warm, thoughtful Christian companion who helps users reflect with compassion and respect.
-    Answer the user's actual question directly. Do not claim to be a pastor, counselor, or human.
-    Bible quotations and references are allowed only when they come from the supplied local Berean Standard Bible (BSB) passages.
-    Never invent, complete from memory, or guess a Bible quotation or reference. If no supplied passage supports a citation, do not cite or quote one; say when you are unsure.
-    The references field must contain only references explicitly represented by the supplied passages. Use an empty array when none apply.
-    Return a concise, natural answer and the structured references requested by the response schema.
-""".trimIndent()
 private const val MAX_HISTORY_MESSAGES = 24
 private const val MAX_HISTORY_MESSAGE_CHARS = 4_000
 
@@ -36,13 +29,13 @@ private const val MAX_HISTORY_MESSAGE_CHARS = 4_000
 class OfflineConnectionException(message: String, cause: Throwable) : IOException(message, cause)
 
 /** HTTP responses and non-connectivity transport failures are surfaced to the user. */
-class GroqApiException(message: String) : IOException(message)
+class GroqApiException(message: String, val statusCode: Int? = null) : IOException(message)
 
 class GroqChatService internal constructor(
     private val apiKey: String,
     private val endpoint: String = ENDPOINT,
-    private val debugLogging: Boolean = BuildConfig.DEBUG
-) : AiProvider {
+    @Suppress("UNUSED_PARAMETER") debugLogging: Boolean = false
+) : GroqAIProvider {
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -56,18 +49,14 @@ class GroqChatService internal constructor(
         passages: List<BiblePassage>
     ): ChatReply = withContext(Dispatchers.IO) {
         if (apiKey.isBlank()) {
-            throw IllegalStateException("Groq API key is missing. Add GROQ_API_KEY to the ignored local.properties file and rebuild the app.")
+            throw OfflineConnectionException(
+                "Ciel is offline.",
+                IOException("No online chat key is configured.")
+            )
         }
         val messages = buildGroqMessages(question, history, passages)
         val bodyText = buildRequestBody(messages)
         validateSerializedRequest(bodyText, question)
-        if (debugLogging) {
-            Log.i(LOG_TAG, "POST $endpoint")
-            Log.i(LOG_TAG, "Outgoing JSON body (Authorization excluded):")
-            logInChunks(bodyText)
-            Log.i(LOG_TAG, "Pre-transmission check: messages=${messages.size}, systemPrompt=true, currentUserMessage=true")
-        }
-
         val body = bodyText.toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
             .url(endpoint)
@@ -83,30 +72,32 @@ class GroqChatService internal constructor(
         }
         validateSerializedRequest(transmittedBody, question)
 
+        val call = client.newCall(request)
+        val cancellationHandler = currentCoroutineContext().job.invokeOnCompletion { cause ->
+            if (cause != null) call.cancel()
+        }
         try {
-            client.newCall(request).execute().use { response ->
+            call.execute().use { response ->
                 val responseBody = response.body?.string().orEmpty()
-                if (debugLogging) {
-                    Log.i(LOG_TAG, "HTTP ${response.code} ${response.message}")
-                    Log.i(LOG_TAG, "Response body:")
-                    logInChunks(responseBody)
-                }
                 if (!response.isSuccessful) {
-                    throw GroqApiException(formatHttpError(response.code, responseBody))
+                    throw GroqApiException(formatHttpError(response.code, responseBody), response.code)
                 }
                 parseReply(responseBody)
             }
         } catch (error: OfflineConnectionException) {
             throw error
         } catch (error: IOException) {
+            currentCoroutineContext().ensureActive()
             if (error is GroqApiException) throw error
             if (error.isConnectivityFailure()) {
                 throw OfflineConnectionException(
-                    "Could not connect to Groq. Ciel switched to the offline BSB Bible Assistant.",
+                    "Ciel is offline.",
                     error
                 )
             }
             throw IOException("The Groq request failed before a response could be read: ${error.message ?: "network error"}", error)
+        } finally {
+            cancellationHandler.dispose()
         }
     }
 
@@ -126,6 +117,9 @@ class GroqChatService internal constructor(
                     .put("type", "object")
                     .put("properties", JSONObject()
                         .put("answer", JSONObject().put("type", "string"))
+                        .put("avatarEmotion", JSONObject()
+                            .put("type", "string")
+                            .put("enum", JSONArray(AvatarEmotion.values().map { it.name })))
                         .put("references", JSONObject()
                             .put("type", "array")
                             .put("items", JSONObject()
@@ -137,7 +131,7 @@ class GroqChatService internal constructor(
                                     .put("endVerse", JSONObject().put("type", "integer")))
                                 .put("required", JSONArray(listOf("book", "chapter", "startVerse", "endVerse")))
                                 .put("additionalProperties", false))))
-                    .put("required", JSONArray(listOf("answer", "references")))
+                    .put("required", JSONArray(listOf("answer", "avatarEmotion", "references")))
                     .put("additionalProperties", false))))
         .toString()
 
@@ -151,7 +145,7 @@ class GroqChatService internal constructor(
         if (messages.length() < 2) throw IllegalStateException("The Groq request must contain a system prompt and user message.")
         val first = messages.optJSONObject(0)
         val last = messages.optJSONObject(messages.length() - 1)
-        if (first?.optString("role") != "system" || first.optString("content") != GROQ_SYSTEM_PROMPT) {
+        if (first?.optString("role") != "system" || first.optString("content") != CielConversationPolicy.systemInstructions(emptyList())) {
             throw IllegalStateException("The Groq request is missing Ciel's system prompt.")
         }
         if (last?.optString("role") != "user" || last.optString("content") != question) {
@@ -186,22 +180,18 @@ class GroqChatService internal constructor(
         val answer = structured.optString("answer").takeIf(String::isNotBlank)
             ?: throw IOException("Groq's response did not include an answer.")
         val references = structured.optJSONArray("references")?.let(ChatReplyCodec::readReferences).orEmpty()
-        return ChatReply(answer = answer, references = references, provider = "Ciel")
+        val emotion = AvatarEmotion.fromWire(structured.optString("avatarEmotion"))
+        return ChatReply(answer = answer, references = references, provider = "Ciel", avatarEmotion = emotion)
     }
 
-    private fun formatHttpError(statusCode: Int, responseBody: String): String {
-        val detail = runCatching {
-            val root = JSONObject(responseBody)
-            root.optJSONObject("error")?.optString("message")
-                ?.takeIf(String::isNotBlank)
-                ?: root.optString("error").takeIf(String::isNotBlank)
-        }.getOrNull()
-        val guidance = when (statusCode) {
-            401 -> " Check the replacement GROQ_API_KEY in local.properties."
-            429 -> " Groq rate limit or quota was reached. Try again later."
-            else -> ""
-        }
-        return "Groq returned HTTP $statusCode${detail?.let { ": ${it.take(400)}"}.orEmpty()}.$guidance"
+    private fun formatHttpError(statusCode: Int, @Suppress("UNUSED_PARAMETER") responseBody: String): String = when (statusCode) {
+        400 -> "The online service couldn't use that request (HTTP 400). Please try a shorter message."
+        401, 403 -> "Online access couldn't verify this key (HTTP $statusCode). Check the key or replace it in Settings."
+        404 -> "The online conversation model is unavailable (HTTP 404). Check your connection status in Settings."
+        408 -> "The online service timed out (HTTP 408). Please try again."
+        429 -> "Groq returned a rate-limit response (HTTP 429). Try again later; Ciel has no separate daily online-message quota."
+        in 500..599 -> "The online service is temporarily unavailable (HTTP $statusCode). Please try again later."
+        else -> "The online service couldn't complete the request (HTTP $statusCode). Please try again."
     }
 
     private fun IOException.isConnectivityFailure(): Boolean {
@@ -218,18 +208,68 @@ class GroqChatService internal constructor(
         return false
     }
 
-    private fun logInChunks(value: String) {
-        value.chunked(3_000).forEachIndexed { index, chunk ->
-            Log.i(LOG_TAG, "chunk ${index + 1}: $chunk")
-        }
-    }
-
     private companion object {
         const val ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
         const val MODEL = "openai/gpt-oss-20b"
-        const val LOG_TAG = "CielGroqHttp"
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     }
+}
+
+enum class GroqKeyValidation { CONNECTED, INVALID_KEY, RATE_LIMITED, MODEL_UNAVAILABLE, NETWORK_UNAVAILABLE, SERVICE_UNAVAILABLE, INVALID_FORMAT }
+
+internal const val GROQ_MODEL_ID = "openai/gpt-oss-20b"
+private const val GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models"
+
+fun isBasicGroqKeyFormatValid(value: String): Boolean =
+    value.startsWith("gsk_") && value.length in 24..256 && value.none(Char::isWhitespace)
+
+suspend fun validateGroqKey(apiKey: String, modelsUrl: String = GROQ_MODELS_URL): GroqKeyValidation = withContext(Dispatchers.IO) {
+    if (!isBasicGroqKeyFormatValid(apiKey)) return@withContext GroqKeyValidation.INVALID_FORMAT
+    val request = Request.Builder()
+        .url(modelsUrl)
+        .header("Authorization", "Bearer $apiKey")
+        .header("Accept", "application/json")
+        .get()
+        .build()
+    try {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .callTimeout(25, TimeUnit.SECONDS)
+            .build()
+            .newCall(request)
+            .execute()
+            .use { response ->
+                when {
+                    response.code == 401 || response.code == 403 -> GroqKeyValidation.INVALID_KEY
+                    response.code == 429 -> GroqKeyValidation.RATE_LIMITED
+                    response.code in 500..599 -> GroqKeyValidation.SERVICE_UNAVAILABLE
+                    !response.isSuccessful -> GroqKeyValidation.SERVICE_UNAVAILABLE
+                    else -> {
+                        val models = runCatching {
+                            JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                        }.getOrNull() ?: return@use GroqKeyValidation.SERVICE_UNAVAILABLE
+                        if ((0 until models.length()).any { models.optJSONObject(it)?.optString("id") == GROQ_MODEL_ID }) {
+                            GroqKeyValidation.CONNECTED
+                        } else GroqKeyValidation.MODEL_UNAVAILABLE
+                    }
+                }
+            }
+    } catch (error: IOException) {
+        if (error.isConnectivityFailure()) GroqKeyValidation.NETWORK_UNAVAILABLE else GroqKeyValidation.SERVICE_UNAVAILABLE
+    } catch (_: Exception) {
+        GroqKeyValidation.SERVICE_UNAVAILABLE
+    }
+}
+
+private fun IOException.isConnectivityFailure(): Boolean {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current is UnknownHostException || current is ConnectException || current is NoRouteToHostException || current is SocketTimeoutException) return true
+        if (current is SocketException && current.message.orEmpty().contains("network is unreachable", ignoreCase = true)) return true
+        current = current.cause
+    }
+    return false
 }
 
 internal fun buildGroqMessages(
@@ -238,10 +278,10 @@ internal fun buildGroqMessages(
     passages: List<BiblePassage>
 ): List<GroqChatMessage> {
     require(question.isNotBlank()) { "Write a message before sending." }
-    val messages = mutableListOf(GroqChatMessage("system", GROQ_SYSTEM_PROMPT))
+    val messages = mutableListOf(GroqChatMessage("system", CielConversationPolicy.systemInstructions(emptyList())))
     if (passages.isNotEmpty()) {
         val context = buildString {
-            appendLine("Local BSB passages retrieved for this question:")
+            appendLine("Verified local BSB passages retrieved for this question:")
             passages.forEach { passage ->
                 appendLine("- ${passage.reference}: ${passage.text}")
             }

@@ -9,7 +9,8 @@ data class ChatReply(
     val answer: String,
     val references: List<BibleReference> = emptyList(),
     val provider: String = "Ciel",
-    val fallbackReason: String? = null
+    val fallbackReason: String? = null,
+    val avatarEmotion: AvatarEmotion? = null
 )
 
 object ChatReplyCodec {
@@ -17,6 +18,7 @@ object ChatReplyCodec {
         .put("answer", sanitize(reply.answer))
         .put("provider", reply.provider)
         .put("fallbackReason", reply.fallbackReason ?: JSONObject.NULL)
+        .put("avatarEmotion", reply.avatarEmotion?.name ?: JSONObject.NULL)
         .put("references", JSONArray().apply {
             reply.references.forEach { reference ->
                 put(JSONObject()
@@ -40,7 +42,8 @@ object ChatReplyCodec {
                 references = references,
                 provider = json.optString("provider", "Ciel").ifBlank { "Ciel" },
                 fallbackReason = json.optString("fallbackReason")
-                    .takeIf { it.isNotBlank() && it != "null" }
+                    .takeIf { it.isNotBlank() && it != "null" },
+                avatarEmotion = AvatarEmotion.fromWire(json.optString("avatarEmotion").takeIf { it != "null" })
             )
         }.getOrElse { ChatReply(answer = sanitize(value)) }
     }

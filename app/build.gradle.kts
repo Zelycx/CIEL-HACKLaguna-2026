@@ -1,19 +1,7 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
 }
-
-val localProperties = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
-}
-val groqApiKey = localProperties.getProperty("GROQ_API_KEY", "").trim()
-val escapedGroqApiKey = groqApiKey
-    .replace("\\", "\\\\")
-    .replace("\"", "\\\"")
-    .replace("\n", "\\n")
-    .replace("\r", "\\r")
 
 android {
     namespace = "com.example.hacklaguna2026"
@@ -31,10 +19,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "GROQ_API_KEY", "\"$escapedGroqApiKey\"")
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
 
     buildTypes {
         release {
@@ -66,6 +53,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.17.1")
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
     androidTestImplementation(libs.androidx.espresso.core)

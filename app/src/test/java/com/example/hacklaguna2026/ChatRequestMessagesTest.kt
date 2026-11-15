@@ -31,28 +31,28 @@ class ChatRequestMessagesTest {
     fun consecutiveMessagesKeepConversationHistoryAndExcludeCurrentTurnFromHistory() {
         val conversationId = "conversation"
         val history = mutableListOf<MessageEntity>()
-        val firstQuestion = normalizeChatQuestion("  First question?  ")
-        assertEquals("First question?", firstQuestion)
+        val firstQuestion = normalizeChatQuestion("  What does Scripture say about hope?  ")
+        assertEquals("What does Scripture say about hope?", firstQuestion)
         assertEquals(emptyList<Pair<String, String>>(), buildChatHistory(history, firstQuestion))
         history += MessageEntity(conversationId = conversationId, role = "user", content = firstQuestion, createdAt = 2)
         history += MessageEntity(conversationId = conversationId, role = "assistant", content = "First answer.", createdAt = 3)
 
-        val second = buildChatHistory(history, "Second question?")
+        val second = buildChatHistory(history, "How can faith help with this?")
         assertEquals(listOf("user", "assistant"), second.map { it.first })
-        assertEquals(listOf("First question?", "First answer."), second.map { it.second })
-        val secondRequest = buildGroqMessages("Second question?", second, emptyList())
+        assertEquals(listOf("What does Scripture say about hope?", "First answer."), second.map { it.second })
+        val secondRequest = buildGroqMessages("How can faith help with this?", second, emptyList())
         assertEquals("system", secondRequest.first().role)
-        assertEquals("Second question?", secondRequest.last().content)
+        assertEquals("How can faith help with this?", secondRequest.last().content)
         assertEquals(
-            listOf("First question?", "First answer.", "Second question?"),
+            listOf("What does Scripture say about hope?", "First answer.", "How can faith help with this?"),
             secondRequest.filter { it.role == "user" || it.role == "assistant" }.map { it.content }
         )
-        history += MessageEntity(conversationId = conversationId, role = "user", content = "Second question?", createdAt = 4)
+        history += MessageEntity(conversationId = conversationId, role = "user", content = "How can faith help with this?", createdAt = 4)
         history += MessageEntity(conversationId = conversationId, role = "assistant", content = "Second answer.", createdAt = 5)
 
-        val third = buildChatHistory(history, "Third question?")
+        val third = buildChatHistory(history, "What does Scripture say about patience?")
         assertEquals(listOf("user", "assistant", "user", "assistant"), third.map { it.first })
-        assertEquals(listOf("First question?", "First answer.", "Second question?", "Second answer."), third.map { it.second })
+        assertEquals(listOf("What does Scripture say about hope?", "First answer.", "How can faith help with this?", "Second answer."), third.map { it.second })
     }
 
     @Test
@@ -126,6 +126,21 @@ class ChatRequestMessagesTest {
             assertTrue(error is GroqApiException)
             assertTrue(error?.message.orEmpty().contains("HTTP 401"))
             assertEquals(0, offline.calls)
+            server.awaitRequest()
+            Unit
+        }
+    }
+
+    @Test
+    fun groq429FallsBackOfflineAndReportsTheProviderRateLimit() = runBlocking {
+        LocalHttpStub(429, """{"error":{"message":"rate limit reached"}}""").use { server ->
+            val online = GroqChatService("test-only-key", server.endpoint, debugLogging = false)
+            val offline = RecordingProvider(ChatReply("Offline fallback"))
+            val reply = replyWithOfflineFallback(online, offline, "New question", emptyList(), emptyList())
+
+            assertEquals("Offline fallback", reply.answer)
+            assertTrue(reply.fallbackReason.orEmpty().contains("Groq provider rate limit"))
+            assertEquals(1, offline.calls)
             server.awaitRequest()
             Unit
         }

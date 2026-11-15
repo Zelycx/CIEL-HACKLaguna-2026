@@ -9,3 +9,5 @@ interface AiProvider {
         passages: List<BiblePassage>
     ): ChatReply
 }
+
+interface GroqAIProvider : AiProvider

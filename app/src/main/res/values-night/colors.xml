@@ -1,12 +1,13 @@
 <resources>
-    <color name="black">#FFF1F4EF</color>
-    <color name="white">#FF18221B</color>
-    <color name="cream">#FF121A15</color>
-    <color name="forest">#FF9FBEA8</color>
-    <color name="forest_dark">#FFD0E1D3</color>
-    <color name="sage">#FF29372E</color>
-    <color name="sage_text">#FFB2C3B6</color>
-    <color name="surface_card">#FF1C2820</color>
-    <color name="muted">#FFA5B0A8</color>
-    <color name="line">#FF36443A</color>
+    <color name="black">#FFFFFFFF</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="cream">#FF000000</color>
+    <color name="forest">#FF0277BD</color>
+    <color name="forest_dark">#FF0277BD</color>
+    <color name="sage">#FF000000</color>
+    <color name="sage_text">#FF0277BD</color>
+    <color name="surface_card">#FF000000</color>
+    <color name="muted">#FFB7C0C8</color>
+    <color name="line">#FF30363B</color>
+    <color name="error">#FFF2B8B5</color>
 </resources>

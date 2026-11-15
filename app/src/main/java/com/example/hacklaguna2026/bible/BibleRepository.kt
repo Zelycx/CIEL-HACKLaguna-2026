@@ -87,6 +87,36 @@ class BibleRepository(context: Context, private val database: AppDatabase) {
             .toList()
     }
 
+    suspend fun contextualPassages(question: String): List<BiblePassage> {
+        val value = question.lowercase(Locale.ROOT)
+        val curated = when {
+            listOf("distant from god", "far from god", "feel distant", "feel far from").any(value::contains) ->
+                listOf("James" to (4 to 8), "Psalms" to (34 to 18), "Psalms" to (145 to 18))
+            listOf("mistake", "keep failing", "keep sinning", "mess up", "made a mistake").any(value::contains) ->
+                listOf("1 John" to (1 to 9), "Psalms" to (103 to 12), "Romans" to (8 to 1))
+            listOf("anxious", "anxiety", "afraid", "scared", "fear", "worried").any(value::contains) ->
+                listOf("1 Peter" to (5 to 7), "Philippians" to (4 to 6), "Isaiah" to (41 to 10))
+            listOf("grief", "grieving", "died", "death", "loss", "miss them").any(value::contains) ->
+                listOf("Psalms" to (34 to 18), "Matthew" to (5 to 4))
+            listOf("forgive", "forgiveness").any(value::contains) ->
+                listOf("1 John" to (1 to 9), "Matthew" to (6 to 14))
+            listOf("pray", "prayer").any(value::contains) ->
+                listOf("Matthew" to (6 to 6), "Philippians" to (4 to 6))
+            listOf("hope", "discouraged", "difficult week", "hard day").any(value::contains) ->
+                listOf("Romans" to (15 to 13), "Psalms" to (42 to 11), "Isaiah" to (41 to 10))
+            else -> emptyList()
+        }
+        if (curated.isNotEmpty()) {
+            val actual = curated.mapNotNull { (book, location) ->
+                database.bible().verse(book, location.first, location.second)?.let {
+                    BiblePassage(it.book, it.chapter, it.verse, it.text)
+                }
+            }
+            if (actual.isNotEmpty()) return actual
+        }
+        return searchRelevantPassages(question)
+    }
+
     suspend fun validateReferences(
         references: List<BibleReference>,
         suppliedPassages: List<BiblePassage>
@@ -114,6 +144,22 @@ class BibleRepository(context: Context, private val database: AppDatabase) {
                     reference.copy(book = book, preview = selected.first().text),
                     selected
                 )
+            }
+    }
+
+    suspend fun resolveSavedReferences(references: List<BibleReference>): List<BiblePassage> {
+        val books = database.bible().books()
+        return references.distinctBy { "${normalize(it.book)}|${it.chapter}|${it.startVerse}" }
+            .take(MAX_PASSAGES)
+            .flatMap { reference ->
+                val book = books.firstOrNull { normalize(it) == normalize(reference.book) } ?: return@flatMap emptyList()
+                if (reference.chapter < 1 || reference.startVerse < 1 || reference.endVerse < reference.startVerse ||
+                    reference.endVerse - reference.startVerse > MAX_REFERENCE_RANGE
+                ) return@flatMap emptyList()
+                val verses = database.bible().chapter(book, reference.chapter)
+                (reference.startVerse..reference.endVerse).mapNotNull { number ->
+                    verses.firstOrNull { it.verse == number }?.let { BiblePassage(it.book, it.chapter, it.verse, it.text) }
+                }
             }
     }
 

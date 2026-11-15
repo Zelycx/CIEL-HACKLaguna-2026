@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF1F2821</color>
-    <color name="white">#FFFFFEFB</color>
-    <color name="cream">#FFF7F5EF</color>
-    <color name="forest">#FF254C3A</color>
-    <color name="forest_dark">#FF193B2B</color>
-    <color name="sage">#FFE3EADF</color>
-    <color name="sage_text">#FF53665A</color>
-    <color name="surface_card">#FFFFFEFB</color>
-    <color name="muted">#FF777E77</color>
-    <color name="line">#FFE8E9E2</color>
+    <color name="black">#FF17212B</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="cream">#FFFFFFFF</color>
+    <color name="forest">#FF0277BD</color>
+    <color name="forest_dark">#FF0277BD</color>
+    <color name="sage">#FFEAF6FC</color>
+    <color name="sage_text">#FF0277BD</color>
+    <color name="surface_card">#FFFFFFFF</color>
+    <color name="muted">#FF66727D</color>
+    <color name="line">#FFE1E8ED</color>
+    <color name="error">#FFB3261E</color>
 </resources>

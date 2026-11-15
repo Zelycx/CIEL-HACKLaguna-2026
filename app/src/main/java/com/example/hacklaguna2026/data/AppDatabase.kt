@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.Insert
@@ -12,7 +13,10 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.Upsert
+import androidx.room.Update
 
 @Entity
 data class ConversationEntity(
@@ -92,7 +96,16 @@ data class ReflectionEntity(
     val content: String,
     val selectedPrompts: String,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    @ColumnInfo(defaultValue = "0") val isEncrypted: Boolean = false
+)
+
+@Entity
+data class KumpisalSecurityEntity(
+    @PrimaryKey val id: Int = 1,
+    val salt: String,
+    val verifier: String,
+    val iterations: Int
 )
 
 @Entity
@@ -208,6 +221,9 @@ interface ReadingProgressDao {
     @Query("SELECT * FROM ReadingProgressEntity ORDER BY openedAt DESC LIMIT 6")
     suspend fun recent(): List<ReadingProgressEntity>
 
+    @Query("SELECT * FROM ReadingProgressEntity")
+    suspend fun allProgress(): List<ReadingProgressEntity>
+
     @Query("SELECT * FROM ReadingProgressEntity WHERE completedAt IS NOT NULL ORDER BY completedAt DESC")
     suspend fun completed(): List<ReadingProgressEntity>
 }
@@ -258,11 +274,32 @@ interface ReflectionDao {
     @Insert
     suspend fun save(reflection: ReflectionEntity): Long
 
+    @Update
+    suspend fun update(reflection: ReflectionEntity)
+
     @Query("SELECT * FROM ReflectionEntity ORDER BY updatedAt DESC")
     suspend fun all(): List<ReflectionEntity>
 
+    @Query("SELECT * FROM ReflectionEntity WHERE id = :id LIMIT 1")
+    suspend fun byId(id: Long): ReflectionEntity?
+
     @Query("DELETE FROM ReflectionEntity WHERE id = :id")
     suspend fun delete(id: Long)
+
+    @Query("SELECT COALESCE(MAX(id), 0) + 1 FROM ReflectionEntity")
+    suspend fun nextId(): Long
+}
+
+@Dao
+interface KumpisalSecurityDao {
+    @Query("SELECT * FROM KumpisalSecurityEntity WHERE id = 1 LIMIT 1")
+    suspend fun get(): KumpisalSecurityEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(value: KumpisalSecurityEntity)
+
+    @Query("DELETE FROM KumpisalSecurityEntity WHERE id = 1")
+    suspend fun delete()
 }
 
 @Dao
@@ -287,9 +324,10 @@ interface UserSessionDao {
         ActivitySessionEntity::class,
         DailyStatisticsEntity::class,
         ReflectionEntity::class,
+        KumpisalSecurityEntity::class,
         UserSessionEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -301,17 +339,29 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun activitySessions(): ActivitySessionDao
     abstract fun dailyStatistics(): DailyStatisticsDao
     abstract fun reflections(): ReflectionDao
+    abstract fun kumpisalSecurity(): KumpisalSecurityDao
     abstract fun userSession(): UserSessionDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null
+
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE ReflectionEntity ADD COLUMN isEncrypted INTEGER NOT NULL DEFAULT 0")
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS KumpisalSecurityEntity (" +
+                        "id INTEGER NOT NULL, salt TEXT NOT NULL, verifier TEXT NOT NULL, " +
+                        "iterations INTEGER NOT NULL, PRIMARY KEY(id))"
+                )
+            }
+        }
 
         fun get(context: Context): AppDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
                 "chrchatbot.db"
-            ).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
         }
     }
 }
